@@ -37,5 +37,5 @@ $ ansible --version
 > updating the patch with the script
 $ ansible-playbook update_nginx.yml --ask-become-pass
 
-> to check for the current version
+#to check for the current version
 $ nginx -version
