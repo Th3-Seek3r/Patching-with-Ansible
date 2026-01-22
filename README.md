@@ -2,8 +2,6 @@
 
 This repository demonstrates how to patch **Nginx** on a Kali Linux system using **Ansible**.
 
----
-
 ## Prerequisites
 
 * Kali Linux
@@ -14,6 +12,8 @@ This repository demonstrates how to patch **Nginx** on a Kali Linux system using
 ---
 
 ## Run the Playbook
+
+The playbook file **`update_nginx.yml`** is included in this repository.
 
 Execute the following command to run the Ansible playbook:
 
