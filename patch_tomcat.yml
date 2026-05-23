@@ -7,28 +7,35 @@
     tomcat_install_dir: /opt/tomcat
     tomcat_version: 11.0.18
     tomcat_archive: "apache-tomcat-{{ tomcat_version }}.tar.gz"
+    tomcat_extracted: "apache-tomcat-{{ tomcat_version }}"
     tomcat_url: "https://archive.apache.org/dist/tomcat/tomcat-11/v{{ tomcat_version }}/bin/{{ tomcat_archive }}"
 
   tasks:
 
     ####################################################
-    # 1. Ensure Java 17 is installed (Required for Tomcat 11)
+    # 1. Install Java 17+
     ####################################################
-    - name: Install compatible Java (Kali-safe)
+    - name: Install Java
       apt:
         name: default-jdk
         state: present
         update_cache: yes
 
     ####################################################
-    # 2. Stop existing Tomcat if running
+    # 2. Stop Tomcat if running
     ####################################################
-    - name: Stop existing Tomcat
+    - name: Stop Tomcat gracefully
       shell: "{{ tomcat_install_dir }}/bin/shutdown.sh"
+      args:
+        executable: /bin/bash
       ignore_errors: yes
 
+    - name: Wait before removing Tomcat
+      pause:
+        seconds: 5
+
     ####################################################
-    # 3. Remove vulnerable Tomcat installation
+    # 3. Remove old Tomcat
     ####################################################
     - name: Remove old Tomcat directory
       file:
@@ -36,17 +43,17 @@
         state: absent
 
     ####################################################
-    # 4. Download Tomcat 11.0.18
+    # 4. Download Tomcat
     ####################################################
     - name: Download Tomcat archive
       get_url:
         url: "{{ tomcat_url }}"
         dest: "/opt/{{ tomcat_archive }}"
-        timeout: 300
         mode: '0644'
+        timeout: 300
 
     ####################################################
-    # 5. Extract Tomcat archive
+    # 5. Extract Tomcat
     ####################################################
     - name: Extract Tomcat archive
       unarchive:
@@ -55,46 +62,43 @@
         remote_src: yes
 
     ####################################################
-    # 6. Rename extracted directory
+    # 6. Rename installation directory
     ####################################################
-    - name: Rename extracted directory to /opt/tomcat
-      command: mv "/opt/apache-tomcat-{{ tomcat_version }}" "{{ tomcat_install_dir }}"
+    - name: Rename extracted Tomcat directory
+      command: >
+        mv /opt/{{ tomcat_extracted }} {{ tomcat_install_dir }}
       args:
         creates: "{{ tomcat_install_dir }}"
 
     ####################################################
-    # 7. Set ownership and permissions
+    # 7. Set permissions
     ####################################################
-    - name: Set ownership and permissions
+    - name: Set ownership
       file:
         path: "{{ tomcat_install_dir }}"
         owner: root
         group: root
+        recurse: yes
+
+    - name: Make scripts executable
+      file:
+        path: "{{ tomcat_install_dir }}/bin"
         mode: '0755'
         recurse: yes
 
     ####################################################
-    # 8. Start Tomcat 11
+    # 8. Start Tomcat
     ####################################################
     - name: Start Tomcat
       shell: "{{ tomcat_install_dir }}/bin/startup.sh"
+      args:
+        executable: /bin/bash
 
     ####################################################
-    # 9. Verify Tomcat is running
+    # 9. Verify Tomcat is listening
     ####################################################
-    - name: Check Tomcat service
-      uri:
-        url: http://localhost:8080
-        status_code: 200
-      register: tomcat_check
-      retries: 5
-      delay: 5
-      until: tomcat_check.status == 200
-
-    ####################################################
-    # 10. Cleanup downloaded archive
-    ####################################################
-    - name: Remove downloaded archive
-      file:
-        path: "/opt/{{ tomcat_archive }}"
-        state: absent
+    - name: Verify Tomcat is running
+      wait_for:
+        port: 8080
+        delay: 5
+        timeout: 60
