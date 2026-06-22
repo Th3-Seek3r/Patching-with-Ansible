@@ -24,7 +24,7 @@ If prompted for the **BECOME password**, enter your **Kali Linux user password**
 
 ## Verify Nginx Version
 
-After the playbook completes successfully, verify that Nginx has been updated to the latest version:
+After 
 
 ```bash
 nginx -version
